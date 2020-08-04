@@ -1,3 +1,4 @@
+use ps1::ffi::get_user_id;
 use ps1::git;
 use ps1::zsh::{ZshAnsiString, ZshGenericAnsiString};
 
@@ -9,15 +10,15 @@ use tico::tico;
 fn main() {
     let mut args = std::env::args();
     let last_exit_code = args.nth(1).expect("last exit code argument");
-    let user_id = args.next().expect("user ID argument");
     let hostname = args.next().expect("hostname argument");
 
+    let user_id = get_user_id();
     let cwd = std::env::current_dir().unwrap();
     let home_dir = dirs::home_dir();
     let home_dir = home_dir.as_ref().and_then(|d| d.to_str());
     let cwd_short = tico(cwd.to_str().unwrap(), home_dir);
     let git_status = GitStatus(git::status(&cwd));
-    let prompt_char = ZshGenericAnsiString(if &user_id == "0" {
+    let prompt_char = ZshGenericAnsiString(if user_id == 0 {
         Color::Red.bold().paint("#")
     } else {
         Color::Red.paint("⭑")
