@@ -38,6 +38,16 @@ where
     }
 }
 
+pub trait IntoZsh<'a> {
+    fn into_zsh(self) -> ZshAnsiString<'a>;
+}
+
+impl<'a> IntoZsh<'a> for ANSIGenericString<'a, str> {
+    fn into_zsh(self) -> ZshAnsiString<'a> {
+        ZshGenericAnsiString(self)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1,11 +1,24 @@
 use ps1::ffi::get_user_id;
 use ps1::git;
-use ps1::zsh::{ZshAnsiString, ZshGenericAnsiString};
+use ps1::zsh::{IntoZsh, ZshGenericAnsiString};
 
 use ansi_term::{ANSIString, Color};
 use dirs;
 use std::fmt;
 use tico::tico;
+
+macro_rules! format_opts {
+    ($($e:expr),+) => {{
+        let mut result = String::new();
+        $(
+            if let Some(s) = $e {
+                result.push(' ');
+                result.push_str(&s.to_string());
+            }
+        )*
+        result
+    }};
+}
 
 fn main() {
     let mut args = std::env::args();
@@ -17,7 +30,7 @@ fn main() {
     let home_dir = dirs::home_dir();
     let home_dir = home_dir.as_ref().and_then(|d| d.to_str());
     let cwd_short = tico(cwd.to_str().unwrap(), home_dir);
-    let git_status = GitStatus(git::status(&cwd));
+    let git_status = git::status(&cwd).map(GitStatus);
     let prompt_char = ZshGenericAnsiString(if user_id == 0 {
         Color::Red.bold().paint("#")
     } else {
@@ -32,27 +45,23 @@ fn main() {
     }
 
     print!(
-        "\n{} {} {}{} {}\n{} {}\u{00A0}\u{00A0}",
-        top_left_bracket(),
-        ZshGenericAnsiString(Color::Green.bold().paint(hostname)),
-        ZshGenericAnsiString(Color::Green.paint(cwd_short)),
-        top_right_bracket(),
-        git_status,
-        bottom_left_bracket(),
+        "\n{} {} {}{}{}\n{} {}\u{00A0}\u{00A0}",
+        Color::White.paint("⎡").into_zsh(),
+        Color::Green.bold().paint(hostname).into_zsh(),
+        Color::Green.paint(cwd_short).into_zsh(),
+        Color::White.paint("⎤").into_zsh(),
+        format_opts!(git_status),
+        Color::White.paint("⎣").into_zsh(),
         prompt_char,
     );
 }
 
-struct GitStatus(Option<git::Status>);
+struct GitStatus(git::Status);
 
 impl fmt::Display for GitStatus {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut write = |s: ANSIString| ZshGenericAnsiString(s).fmt(f);
-
-        let status = match &self.0 {
-            Some(status) => status,
-            _ => return fmt::Result::Ok(()),
-        };
+        let status = &self.0;
 
         match &status.ref_name {
             git::RefName::Branch(name) => write(Color::Blue.bold().paint(name)),
@@ -69,36 +78,19 @@ impl fmt::Display for GitStatus {
             )
         }?;
 
-        match status.upstream.as_ref().map(|u| u.commits_ahead) {
-            Some(n) if n > 0 => {
-                write(Color::Red.paint(format!(" ▲{}", n)))?;
+        if let Some(upstream) = status.upstream.as_ref() {
+            if upstream.commits_ahead > 0 {
+                write(Color::Red.paint(format!(" ▲{}", upstream.commits_ahead)))?;
             }
-            _ => (),
-        };
-
-        match status.upstream.as_ref().map(|u| u.commits_behind) {
-            Some(n) if n > 0 => {
-                write(Color::Red.paint(format!(" ▼{}", n)))?;
+            if upstream.commits_behind > 0 {
+                write(Color::Red.paint(format!(" ▼{}", upstream.commits_behind)))?;
             }
-            _ => (),
-        };
-
-        if status.files.untracked_files == 0 {
-            Ok(())
-        } else {
-            write(Color::Yellow.paint(format!(" ❖{}", status.files.untracked_files)))
         }
+
+        if status.files.untracked_files > 0 {
+            write(Color::Yellow.paint(format!(" ❖{}", status.files.untracked_files)))?;
+        }
+
+        Ok(())
     }
-}
-
-pub fn top_left_bracket() -> ZshAnsiString<'static> {
-    Color::White.paint("⎡").into()
-}
-
-pub fn top_right_bracket() -> ZshAnsiString<'static> {
-    Color::White.paint("⎤").into()
-}
-
-pub fn bottom_left_bracket() -> ZshAnsiString<'static> {
-    Color::White.paint("⎣").into()
 }
