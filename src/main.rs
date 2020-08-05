@@ -4,7 +4,10 @@ use ps1::zsh::{IntoZsh, ZshGenericAnsiString};
 
 use ansi_term::{ANSIString, Color};
 use dirs;
-use std::fmt;
+use std::{
+    fmt,
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
 use tico::tico;
 
 macro_rules! format_opts {
@@ -22,8 +25,16 @@ macro_rules! format_opts {
 
 fn main() {
     let mut args = std::env::args();
-    let last_exit_code = args.nth(1).expect("last exit code argument");
+    let last_exit_code = {
+        let arg = args.nth(1).expect("last exit code argument");
+        if arg == "dump_time" {
+            dump_time();
+            return;
+        }
+        arg
+    };
     let hostname = args.next().expect("hostname argument");
+    let command_duration_ms = args.next().and_then(|s| s.parse::<u64>().ok());
 
     let user_id = get_user_id();
     let cwd = std::env::current_dir().unwrap();
@@ -31,6 +42,12 @@ fn main() {
     let home_dir = home_dir.as_ref().and_then(|d| d.to_str());
     let cwd_short = tico(cwd.to_str().unwrap(), home_dir);
     let git_status = git::status(&cwd).map(GitStatus);
+    let command_duration = command_duration_ms.map(|ms| {
+        Color::Yellow
+            .bold()
+            .paint(format!("{:?}", Duration::from_millis(ms)))
+            .into_zsh()
+    });
     let prompt_char = ZshGenericAnsiString(if user_id == 0 {
         Color::Red.bold().paint("#")
     } else {
@@ -40,7 +57,10 @@ fn main() {
     if &last_exit_code != "0" {
         print!(
             "💩 💩 💩  {}",
-            ZshGenericAnsiString(Color::Red.bold().paint(format!("[{}]", last_exit_code)))
+            Color::Red
+                .bold()
+                .paint(format!("[{}]", last_exit_code))
+                .into_zsh()
         );
     }
 
@@ -50,7 +70,7 @@ fn main() {
         Color::Green.bold().paint(hostname).into_zsh(),
         Color::Green.paint(cwd_short).into_zsh(),
         Color::White.paint("⎤").into_zsh(),
-        format_opts!(git_status),
+        format_opts!(git_status, command_duration),
         Color::White.paint("⎣").into_zsh(),
         prompt_char,
     );
@@ -93,4 +113,14 @@ impl fmt::Display for GitStatus {
 
         Ok(())
     }
+}
+
+fn dump_time() {
+    println!(
+        "{}",
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("epoch")
+            .as_millis()
+    );
 }
