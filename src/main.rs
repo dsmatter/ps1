@@ -1,3 +1,4 @@
+use ps1::duration::format_duration;
 use ps1::ffi::get_user_id;
 use ps1::git;
 use ps1::zsh::{IntoZsh, ZshGenericAnsiString};
@@ -45,7 +46,7 @@ fn main() {
     let command_duration = command_duration_ms.map(|ms| {
         Color::Yellow
             .bold()
-            .paint(format!("{:?}", Duration::from_millis(ms)))
+            .paint(format_duration(Duration::from_millis(ms)))
             .into_zsh()
     });
     let prompt_char = ZshGenericAnsiString(if user_id == 0 {
