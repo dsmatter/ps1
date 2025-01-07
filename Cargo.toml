@@ -8,7 +8,8 @@ edition = "2018"
 
 [dependencies]
 tico = "2.0"
-git2 = "0.13"
+git2 = "0.20"
 ansi_term = "0.12"
-lazy_static = "1.4"
-dirs = "2.0"
+lazy_static = "1.5"
+dirs = "5.0"
+
