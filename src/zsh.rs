@@ -55,6 +55,6 @@ mod tests {
     #[test]
     fn test_zsh_sample() {
         let string = ZshGenericAnsiString(ansi_term::Color::Green.bold().paint("foobar"));
-        assert_eq!("%{\u{1b}[1;32m%}foobar%{\u{1b}[0m%}", format!("{}", string))
+        assert_eq!("%{\u{1b}[1;32m%}foobar%{\u{1b}[0m%}", string.to_string());
     }
 }

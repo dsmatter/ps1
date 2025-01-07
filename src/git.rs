@@ -11,34 +11,16 @@ pub struct Status {
     pub upstream: Option<UpstreamStatus>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct FilesStatus {
     pub uncommitted_files: u32,
     pub untracked_files: u32,
 }
 
-impl Default for FilesStatus {
-    fn default() -> Self {
-        FilesStatus {
-            uncommitted_files: 0,
-            untracked_files: 0,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct UpstreamStatus {
     pub commits_ahead: u32,
     pub commits_behind: u32,
-}
-
-impl Default for UpstreamStatus {
-    fn default() -> Self {
-        UpstreamStatus {
-            commits_ahead: 0,
-            commits_behind: 0,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -49,11 +31,12 @@ pub enum RefName {
 
 pub fn status(cwd: &Path) -> Option<Status> {
     let repo = Repository::open_ext(
-        &cwd,
+        cwd,
         RepositoryOpenFlags::empty(),
         std::iter::empty::<OsString>(),
     )
     .ok()?;
+
     let ref_name = ref_name(&repo)?;
     let files = files_status(&repo)?;
     let upstream = upstream_status(&repo);
@@ -74,6 +57,7 @@ fn ref_name(repo: &Repository) -> Option<RefName> {
     } else {
         None
     };
+
     branch_name.or_else(|| {
         reference
             .peel_to_commit()
@@ -100,6 +84,7 @@ fn upstream_status(repo: &Repository) -> Option<UpstreamStatus> {
     let upstream = Branch::wrap(head).upstream().ok()?;
     let remote_oid = upstream.get().target()?;
     let (ahead, behind) = repo.graph_ahead_behind(local_oid, remote_oid).ok()?;
+
     Some(UpstreamStatus {
         commits_ahead: ahead as u32,
         commits_behind: behind as u32,

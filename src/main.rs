@@ -1,15 +1,14 @@
-use ps1::duration::format_duration;
-use ps1::ffi::get_user_id;
-use ps1::git;
-use ps1::zsh::{IntoZsh, ZshGenericAnsiString};
-
 use ansi_term::{ANSIString, Color};
-use dirs;
 use std::{
     fmt,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tico::tico;
+
+use ps1::duration::format_duration;
+use ps1::ffi::get_user_id;
+use ps1::git;
+use ps1::zsh::{IntoZsh, ZshGenericAnsiString};
 
 macro_rules! format_opts {
     ($($e:expr),+) => {{
@@ -34,6 +33,7 @@ fn main() {
         }
         arg
     };
+
     let hostname = args.next().expect("hostname argument");
     let command_duration_ms = args.next().and_then(|s| s.parse::<u64>().ok());
 
@@ -49,6 +49,7 @@ fn main() {
             .paint(format_duration(Duration::from_millis(ms)))
             .into_zsh()
     });
+
     let prompt_char = ZshGenericAnsiString(if user_id == 0 {
         Color::Red.bold().paint("#")
     } else {
@@ -57,7 +58,7 @@ fn main() {
 
     if &last_exit_code != "0" {
         print!(
-            "💩 💩 💩  {}",
+            "💥 {}",
             Color::Red
                 .bold()
                 .paint(format!("[{}]", last_exit_code))
