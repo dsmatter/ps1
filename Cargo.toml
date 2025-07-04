@@ -11,6 +11,6 @@ tico = "2.0"
 git2 = "0.20"
 ansi_term = "0.12"
 lazy_static = "1.5"
-dirs = "5.0"
+dirs = "6.0"
 kube-client = "1.1.0"
 k8s-openapi = { version = "0.25.0", features = ["v1_31"] }
