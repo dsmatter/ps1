@@ -8,6 +8,7 @@ use tico::tico;
 use ps1::duration::format_duration;
 use ps1::ffi::get_user_id;
 use ps1::git;
+use ps1::k8s;
 use ps1::zsh::{IntoZsh, ZshGenericAnsiString};
 
 macro_rules! format_opts {
@@ -43,6 +44,8 @@ fn main() {
     let home_dir = home_dir.as_ref().and_then(|d| d.to_str());
     let cwd_short = tico(cwd.to_str().unwrap(), home_dir);
     let git_status = git::status(&cwd).map(GitStatus);
+    let k8s_context =
+        k8s::get_context().map(|ctx| Color::Purple.bold().paint(format!("\u{f10fe} {}", ctx)));
     let command_duration = command_duration_ms.map(|ms| {
         Color::Yellow
             .bold()
@@ -72,7 +75,7 @@ fn main() {
         Color::Green.bold().paint(hostname).into_zsh(),
         Color::Green.paint(cwd_short).into_zsh(),
         Color::White.paint("⎤").into_zsh(),
-        format_opts!(git_status, command_duration),
+        format_opts!(git_status, k8s_context, command_duration),
         Color::White.paint("⎣").into_zsh(),
         prompt_char,
     );
@@ -86,7 +89,9 @@ impl fmt::Display for GitStatus {
         let status = &self.0;
 
         match &status.ref_name {
-            git::RefName::Branch(name) => write(Color::Blue.bold().paint(name)),
+            git::RefName::Branch(name) => {
+                write(Color::Blue.bold().paint(format!("\u{e0a0} {}", name)))
+            }
             git::RefName::Hash(hash) => write(Color::Yellow.bold().paint(hash)),
         }?;
 
