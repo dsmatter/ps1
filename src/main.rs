@@ -44,8 +44,14 @@ fn main() {
     let home_dir = home_dir.as_ref().and_then(|d| d.to_str());
     let cwd_short = tico(cwd.to_str().unwrap(), home_dir);
     let git_status = git::status(&cwd).map(GitStatus);
-    let k8s_context =
-        k8s::get_context().map(|ctx| Color::Purple.bold().paint(format!("\u{f10fe} {}", ctx)));
+    let k8s_context = k8s::get_context().map(|ctx| {
+        let color = if ctx.to_lowercase().contains("prod") {
+            Color::Purple.bold()
+        } else {
+            Color::Purple.normal()
+        };
+        color.paint(format!("\u{f10fe} {}", ctx))
+    });
     let command_duration = command_duration_ms.map(|ms| {
         Color::Yellow
             .bold()
